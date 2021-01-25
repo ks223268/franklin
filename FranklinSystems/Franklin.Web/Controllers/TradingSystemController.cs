@@ -5,6 +5,8 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Franklin.Core;
+using Franklin.Common;
+using Franklin.Common.Model;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -29,18 +31,20 @@ namespace Franklin.Web.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("LOGIN")]
-        public string Login(string username, string password) {
+        public IActionResult Login(string username, string password) {
 
-            string token = string.Empty;
+            LoginResultModel result = new LoginResultModel();
 
             if ((string.IsNullOrEmpty(username)) || (string.IsNullOrEmpty(password))) {
                 Response.StatusCode = (int) System.Net.HttpStatusCode.BadRequest;
-
-            }else if (!_securitySvc.IsValidLogin(username, password, out token)) {
+                result.IsValid = false;
+            }else {
+                result = _securitySvc.ValidateLogin(username, password);
                 Response.StatusCode = (int)System.Net.HttpStatusCode.Unauthorized;
+                
             }
-
-            return token;
+            
+            return new JsonResult(result);
         }
 
         /// <summary>

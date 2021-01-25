@@ -2,12 +2,16 @@
 using System.Collections.Generic;
 using System.Text;
 
+using Franklin.Common;
+using Franklin.Common.Model;
+
 namespace Franklin.Core {
 
     public interface ISecurityService {
 
-        bool IsValidLogin(string username, string password, out string token);
+        public LoginResultModel ValidateLogin(string username, string password);
 
-        bool IsValidToken(string token);
+        bool IsValidTraderToken(string token);
+        bool IsValidAuditorToken(string token);
     }
 }
