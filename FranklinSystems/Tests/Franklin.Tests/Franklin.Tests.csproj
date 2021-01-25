@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Common\Franklin.Common\Franklin.Common.csproj" />
     <ProjectReference Include="..\..\Core\Franklin.Core\Franklin.Core.csproj" />
   </ItemGroup>
 

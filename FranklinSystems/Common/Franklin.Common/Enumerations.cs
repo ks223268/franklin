@@ -8,4 +8,15 @@ namespace Franklin.Common {
         Trader,
         Auditor
     }
+
+    public enum OrderTypeCode { 
+        IOC,
+        GTC 
+    }
+
+    public enum OrderSideCode {
+        BUY,
+        SELL
+    }
+
 }

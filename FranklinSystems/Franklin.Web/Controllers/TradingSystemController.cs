@@ -17,10 +17,12 @@ namespace Franklin.Web.Controllers {
     public class TradingSystemController : ControllerBase {
 
         ISecurityService _securitySvc;
+        IOrderManagementService _orderSvc;
 
-        public TradingSystemController(ISecurityService diSecuritySvc) {
+        public TradingSystemController(ISecurityService diSecuritySvc, IOrderManagementService diOms) {
 
             _securitySvc = diSecuritySvc;
+            _orderSvc = diOms;
         }
 
         /// <summary>
@@ -61,7 +63,14 @@ namespace Franklin.Web.Controllers {
         // POST api/<TradingSystemController>
         [HttpPost]
         [Route("POST")]
-        public void SubmitOrder([FromBody] string value) {
+        public IActionResult SubmitOrder(OrderRequestModel newOrder) {
+
+            var response = _orderSvc.SubmitOrder(newOrder);
+            if (!response.IsValid)
+                Response.StatusCode = (int)System.Net.HttpStatusCode.BadRequest;
+
+            return new JsonResult(response);
+
         }
 
 

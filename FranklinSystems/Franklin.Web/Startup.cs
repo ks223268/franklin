@@ -51,6 +51,7 @@ namespace Franklin.Web {
 
             // DI
             services.AddTransient(typeof(ISecurityService), typeof(SecurityService));
+            services.AddTransient(typeof(IOrderManagementService), typeof(OrderManagementService));
 
         }
 
