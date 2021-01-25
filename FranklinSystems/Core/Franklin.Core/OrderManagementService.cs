@@ -81,5 +81,43 @@ namespace Franklin.Core {
 
         }
 
+        public IList<OrderTransactionModel> GetOrderTransactions(DateTime fromDateTime, DateTime toDateTime) {
+            
+            IList<OrderTransactionModel> ordersFound = new List<OrderTransactionModel>();
+
+            return ordersFound;
+        }
+
+
+        /// <summary>
+        /// Gets all the orders submitted by the trader using the specified token.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public IList<OrderModel> GetOrdersPerTrader(string token) {
+            
+            IList<OrderModel> order = new List<OrderModel>();
+
+
+            //Assumption is that there will only be on trader id fo rnow.
+
+            return order;
+        }
+
+        /// <summary>
+        /// Cancel the order.
+        /// </summary>
+        /// <param name="orderGuid"></param>
+        /// <returns></returns>
+        public bool CancelOrder(string orderGuid) {
+
+            Guid validGuid;
+            if (!Guid.TryParse(orderGuid, out validGuid))
+                return false;
+
+            // Cancel the order - Mock that the order is cancelled.
+            return true;
+        }
+
     }
 }

@@ -11,7 +11,8 @@ namespace Franklin.Core {
 
         public LoginResultModel ValidateLogin(string username, string password);
 
-        bool IsValidTraderToken(string token);
-        bool IsValidAuditorToken(string token);
+        bool IsValidToken(string token);
+
+        bool IsValidRole(string token, FranklinSystemRole role);
     }
 }

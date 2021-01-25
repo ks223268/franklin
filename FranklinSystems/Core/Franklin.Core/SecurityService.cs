@@ -22,42 +22,46 @@ namespace Franklin.Core {
         public LoginResultModel ValidateLogin(string username, string password) {
 
             LoginResultModel result = new LoginResultModel();            
-            bool isValid = false;
-
-            if (((username.ToLower() == "sparrow") & (password.ToLower() == "blue$ky123"))) {
+            
+            if (((username.ToLower() == "sparrow") & (password == "blue$ky123"))) {
                 result.Role = FranklinSystemRole.Trader.ToString("g");
                 result.Token = _traderToken;
-                isValid = true;
+                result.IsValid = true;
 
-            } else if ((username.ToLower() == "jaguar") & (password.ToLower() == "forest#789")) {
+            } else if ((username.ToLower() == "jaguar") & (password == "forest#789")) {
                 result.Role = FranklinSystemRole.Auditor.ToString("g");
                 result.Token = _auditorToken;
-                isValid = true;
-
+                result.IsValid = true;
             }
-            result.IsValid = isValid;
-
+            
             return result;
         }
 
+
         /// <summary>
-        /// Validate token expected from a trader role.
+        /// Confirm if the token belongs a user that has the specified role.
         /// </summary>
         /// <param name="token"></param>
+        /// <param name="role"></param>
         /// <returns></returns>
-        public bool IsValidTraderToken(string token) {
+        public bool IsValidRole(string token, FranklinSystemRole role) { 
 
-            return _traderToken.Equals(token, StringComparison.OrdinalIgnoreCase);
+            if (_traderToken.Equals(token, StringComparison.OrdinalIgnoreCase) ||
+                    role == FranklinSystemRole.Trader) {
+                return true;
+            }else if (_auditorToken.Equals(token, StringComparison.OrdinalIgnoreCase) ||
+                   role == FranklinSystemRole.Auditor) {
+                return true;
+            }
+
+            return false;
+
         }
 
-        /// <summary>
-        /// Validate token expected from an auditor role.
-        /// </summary>
-        /// <param name="token"></param>
-        /// <returns></returns>
-        public bool IsValidAuditorToken(string token) {
+        public bool IsValidToken(string token) {
 
-            return _auditorToken.Equals(token, StringComparison.OrdinalIgnoreCase);
+            return ((Util.IsEmpty(token)) || (_auditorToken.Equals(token, StringComparison.OrdinalIgnoreCase))
+                        || (_traderToken.Equals(token, StringComparison.OrdinalIgnoreCase)));
         }
 
     }

@@ -38,16 +38,16 @@ namespace Franklin.Web.Controllers {
             LoginResultModel result = new LoginResultModel();
 
             if ((string.IsNullOrEmpty(username)) || (string.IsNullOrEmpty(password))) {
-                Response.StatusCode = (int) System.Net.HttpStatusCode.BadRequest;
+                Response.StatusCode = (int)System.Net.HttpStatusCode.BadRequest;
                 result.IsValid = false;
-            }else {
+            } else {
                 result = _securitySvc.ValidateLogin(username, password);
-                Response.StatusCode = (int)System.Net.HttpStatusCode.Unauthorized;
-                
+                if (!result.IsValid)
+                    Response.StatusCode = (int)System.Net.HttpStatusCode.Unauthorized;
             }
-            
+
             return new JsonResult(result);
-        }
+        }        
 
         /// <summary>
         /// Return all orders with a quantity > 0
@@ -55,15 +55,25 @@ namespace Franklin.Web.Controllers {
         /// <returns></returns>
         [HttpGet]
         [Route("GET")]
-        public IEnumerable<string> GetAllOrders() {
+        public IActionResult GetAllOrders(string token) {
 
-            return new string[] { "value1", "value2" };
+            ResponseModel response = new ResponseModel();
+
+            if ((!_securitySvc.IsValidToken(token)) || (!_securitySvc.IsValidRole(token, FranklinSystemRole.Trader))) {
+                response.Alerts.Add("Invalid token or role.");
+                Response.StatusCode = (int)System.Net.HttpStatusCode.Unauthorized;
+                return new JsonResult(response);
+
+            }
+
+            var orders = _orderSvc.GetOrdersPerTrader(token);
+            return new JsonResult("a list");
         }
 
         // POST api/<TradingSystemController>
         [HttpPost]
         [Route("POST")]
-        public IActionResult SubmitOrder(OrderRequestModel newOrder) {
+        public IActionResult SubmitOrder(string token, OrderRequestModel newOrder) {
 
             var response = _orderSvc.SubmitOrder(newOrder);
             if (!response.IsValid)
@@ -76,16 +86,52 @@ namespace Franklin.Web.Controllers {
 
         [HttpGet]
         [Route("SELECT")]
-        public IActionResult GetTransactions() {
+        public IActionResult GetTransactions(string token, string fromDateTime, string toDateTime) {
 
-            return new JsonResult("List of transactions");
+            ResponseModel response = new ResponseModel();
+
+            // This action applies to all roles so just check for the token.
+            if (!_securitySvc.IsValidToken(token)) {
+                response.Alerts.Add("Invalid token....");
+                Response.StatusCode = (int)System.Net.HttpStatusCode.Unauthorized;
+                return new JsonResult(response);
+                
+            }
+
+            //
+            DateTime searchFrom, searchTo;                       
+
+            if ((!DateTime.TryParse(fromDateTime, out searchFrom)) || (!DateTime.TryParse(toDateTime, out searchTo))) {
+                response.Alerts.Add("One or both the dates are invalid.");
+                Response.StatusCode = (int)System.Net.HttpStatusCode.BadRequest;
+
+            } else if (searchTo < searchFrom) {
+                response.Alerts.Add("Please specify the date-time range in order.");
+                Response.StatusCode = (int)System.Net.HttpStatusCode.BadRequest;
+
+            } else {
+                response.Data = _orderSvc.GetOrderTransactions(searchFrom, searchTo);
+            }
+
+            return new JsonResult(response);
         }
 
+        //bool ConfirmTokenRole(string token, )
 
         // DELETE api/<TradingSystemController>/5
         [HttpDelete]
         [Route("DELETE")]
-        public void DeleteOrder(string guid) {
+        public IActionResult CancelOrder(string orderGuid) {
+
+            string message = string.Empty;
+            if (_orderSvc.CancelOrder(orderGuid)) {
+                message = "Order has been cancelled. Order Guid: " + orderGuid;
+            }else {
+                message = "Invalid or non-existant order Guid: " + orderGuid;
+                Response.StatusCode = (int)System.Net.HttpStatusCode.BadRequest;
+            }
+
+            return new JsonResult(message);
 
         }
     }

@@ -9,8 +9,11 @@ namespace Franklin.Core {
 
     public interface IOrderManagementService {
 
-        public OrderResponseModel ValidateOrderRequest(OrderRequestModel orderRequest);
-        public OrderResponseModel SubmitOrder(OrderRequestModel orderRequest);
-       
+        OrderResponseModel ValidateOrderRequest(OrderRequestModel orderRequest);
+        OrderResponseModel SubmitOrder(OrderRequestModel orderRequest);
+        IList<OrderTransactionModel> GetOrderTransactions(DateTime fromDateTime, DateTime toDateTime);
+        IList<OrderModel> GetOrdersPerTrader(string token);
+        bool CancelOrder(string orderGuid);
+
     }
 }
