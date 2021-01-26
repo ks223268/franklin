@@ -7,5 +7,14 @@ namespace Franklin.Common {
 
             return (string.IsNullOrEmpty(val) || string.IsNullOrWhiteSpace(val));
         }
+
+        /// <summary>
+        /// Wrapper to flip this to UTC if needed.
+        /// </summary>
+        /// <returns></returns>
+        public static DateTime GetCurrentDateTime() {
+
+            return DateTime.Now;
+        }
     }
 }

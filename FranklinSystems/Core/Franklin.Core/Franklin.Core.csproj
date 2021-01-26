@@ -5,7 +5,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="10.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\Common\Franklin.Common\Franklin.Common.csproj" />
+    <ProjectReference Include="..\..\Data\Franklin.Data\Franklin.Data.csproj" />
   </ItemGroup>
 
 </Project>

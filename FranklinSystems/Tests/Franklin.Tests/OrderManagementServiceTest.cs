@@ -1,14 +1,30 @@
 ﻿using System;
-using System.Collections.Generic;
-
 using Xunit;
 using Franklin.Core;
 using Franklin.Common.Model;
+using Franklin.Data;
+using Franklin.Data.Entities;
+
+using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 
 namespace Franklin.Tests {
 
     public class OrderManagementServiceTest {
 
+        IRepository _repo;
+
+        public OrderManagementServiceTest() {
+
+            // Setup similar to the Startup configuration.
+            string connectionString = TestHelper.GetIConfigurationRoot(AppContext.BaseDirectory)
+                                                .GetConnectionString("FranklinDbContext");
+
+            DbContextOptionsBuilder builder = new DbContextOptionsBuilder();
+            builder.UseSqlServer(connectionString);            
+            FranklinDbContext franklinDbContext = new FranklinDbContext(builder.Options);
+            _repo = new Repository(franklinDbContext);
+        }
 
         [Fact]
         public void TestValidateOrderRequest_Security_Fail() {
@@ -44,8 +60,8 @@ namespace Franklin.Tests {
             Assert.False(result.IsValid);
         }
 
-        private IOrderManagementService GetService() {
-            return new OrderManagementService();
+        private IOrderManagementService GetService() {            
+            return new OrderManagementService(_repo);
         }
     }
 }

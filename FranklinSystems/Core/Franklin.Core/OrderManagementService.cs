@@ -5,12 +5,20 @@ using System.Linq;
 
 using Franklin.Common;
 using Franklin.Common.Model;
+using Franklin.Data;
+using Franklin.Data.Entities;
 
 namespace Franklin.Core {
     public class OrderManagementService : IOrderManagementService {
 
+        IRepository _repo;
         // 
         string[] _securities = new string[] { "AA01", "AA02", "AA03", "AA04", "AA05", "AA06", "AA07", "AA08", "AA09", "AA10" };
+
+        public OrderManagementService(IRepository diRepo) {
+            _repo = diRepo;
+        }
+
 
         /// <summary>
         /// Validate the order request and provide messages.
@@ -31,15 +39,15 @@ namespace Franklin.Core {
             }
 
             if ((Util.IsEmpty(order.OrderType))
-                               || ((order.OrderType.ToUpper() != OrderTypeCode.IOC.ToString().ToUpper())
-                               || (order.OrderType.ToUpper() != OrderTypeCode.GTC.ToString().ToUpper()))) {
+                               && ((order.OrderType.ToUpper() != OrderTypeCode.IOC.ToString().ToUpper())
+                               && (order.OrderType.ToUpper() != OrderTypeCode.GTC.ToString().ToUpper()))) {
                 response.Alerts.Add("Order type should be IOC or GTC");
                 isValid = false;
             }
 
             if ((Util.IsEmpty(order.Side))
-                               || ((order.Side.ToUpper() != OrderSideCode.BUY.ToString().ToUpper())
-                               || (order.Side.ToUpper() != OrderSideCode.SELL.ToString().ToUpper()))) {
+                               && ((order.Side.ToUpper() != OrderSideCode.BUY.ToString().ToUpper())
+                               && (order.Side.ToUpper() != OrderSideCode.SELL.ToString().ToUpper()))) {
                 response.Alerts.Add("Order side should be BUY or SELL");
                 isValid = false;
             }
@@ -63,7 +71,7 @@ namespace Franklin.Core {
 
 
         /// <summary>
-        /// Submit the order according to the rules specified.
+        /// Validate, create client order and order book entries as per rules.
         /// </summary>
         /// <param name="orderRequest"></param>
         /// <returns></returns>
@@ -71,16 +79,43 @@ namespace Franklin.Core {
            
             OrderResponseModel response = ValidateOrderRequest(orderRequest);
             if (response.IsValid) {
-                // Mock - submit the order and generate a dummy GUID.
-                response.OrderConfirmation = new OrderConfirmationModel() {                    
-                    OrderGuid = Guid.NewGuid()
-                };                
+                                
+                var security = _repo.GetFirst<MarketSecurity>(s => s.Code == orderRequest.SecurityCode);
+                
+                // 1) Save client order
+                ClientOrder newOrder = new ClientOrder() {
+                    OrderGuid = Guid.NewGuid(),
+                    CreatedOn = Util.GetCurrentDateTime(),
+                    ModifiedOn = Util.GetCurrentDateTime(),
+                    SecurityId = security.Id,
+                    Price = orderRequest.Price,
+                    Quantity = orderRequest.Quantity,
+                    SideCode = orderRequest.Side,
+                    TypeCode = orderRequest.OrderType,
+                };
+
+                try {
+                    _repo.Create<ClientOrder>(newOrder);
+                    _repo.Save();
+                } catch (Exception exp) {
+                    // Log exp and throw with some order details, time etc.
+                    throw new Exception("Error while creating new order.");
+
+                }
+
+                // 2) Todo: Match and create order book entries, transactions.
+
+                response.OrderConfirmation = new OrderConfirmationModel() {
+                    IsValid = true,
+                    OrderGuid = newOrder.OrderGuid
+                };
+
             }
 
             return response;
 
         }
-
+        
         public IList<OrderTransactionModel> GetOrderTransactions(DateTime fromDateTime, DateTime toDateTime) {
             
             IList<OrderTransactionModel> ordersFound = new List<OrderTransactionModel>();

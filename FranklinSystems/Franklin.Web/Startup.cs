@@ -7,6 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.SqlServer;
 
 using System;
 using System.Collections.Generic;
@@ -14,6 +16,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Franklin.Core;
+using Franklin.Data;
 
 namespace Franklin.Web {
     public class Startup {
@@ -49,9 +52,15 @@ namespace Franklin.Web {
                 });
             });
 
+            services.AddDbContext<FranklinDbContext>(opt => opt.UseSqlServer(Configuration["ConnectionStrings:FranklinDbContext"]));
+
             // DI
             services.AddTransient(typeof(ISecurityService), typeof(SecurityService));
+            services.AddTransient(typeof(IRepository), typeof(Repository));
             services.AddTransient(typeof(IOrderManagementService), typeof(OrderManagementService));
+
+
+
 
         }
 
