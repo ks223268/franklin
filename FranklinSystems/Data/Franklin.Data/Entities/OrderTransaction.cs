@@ -10,23 +10,19 @@ namespace Franklin.Data.Entities {
      * 
      */ 
 
-    [Table("OrderBook")]
-    public class ClientOrder {
+    [Table("OrderTransaction")]
+    public class OrderTransaction {
                 
         [Key]        
-        public int OrderId { get; set; }
-        public Guid OrderGuid { get; set; }
-        public int TraderId { get; set; }
+        public int Id { get; set; }
+      
+        public int BuyOrderId { get; set; }
+        public int SellOrderId { get; set; }
 
-        public int SecurityId { get; set; }
-        public string SideCode { get; set; }
-        public string TypeCode { get; set; }
-        public int Quantity { get; set; }
-        public decimal Price { get; set; }
-        public string StatusCode { get; set; }
+        public decimal MatchedPrice { get; set; }
+
         public DateTime  CreatedOn { get; set; }
         public DateTime ModifiedOn { get; set; }
-
 
     }
 }

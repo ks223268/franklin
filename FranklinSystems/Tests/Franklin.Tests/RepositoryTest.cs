@@ -5,6 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using Xunit;
 using Franklin.Data;
+using Franklin.Common;
 using Franklin.Data.Entities;
 
 using Microsoft.Extensions.Configuration;
@@ -41,22 +42,43 @@ namespace Franklin.Tests {
 
             var security = _repo.GetFirst<MarketSecurity>(s => s.Code.ToUpper() == "AA04");
 
-            DateTime now = DateTime.Now;
+            DateTime now = Util.GetCurrentDateTime();
             ClientOrder order = new ClientOrder() {
                 OrderGuid = Guid.NewGuid(),
+                TraderId = Constants.TraderUserId,
                 CreatedOn = now,
                 ModifiedOn = now,
                 SecurityId = security.Id,
-                Price = 23.45m,
-                Quantity = 25,
-                SideCode = "BUY",
-                TypeCode = "IOC",
+                StatusCode = OrderStatusCode.New,
+                Price = 22.11m,
+                Quantity = 21,
+                SideCode = "SELL",
+                TypeCode = "GTC",
             };
 
             _repo.Create<ClientOrder>(order);
             _repo.Save();
 
             Assert.True(order.OrderGuid != null);
+        }
+
+
+        [Fact]
+        public void Test_CreateTransaction_Pass() {
+
+            DateTime now = Util.GetCurrentDateTime();
+            OrderTransaction order = new OrderTransaction() {
+                BuyOrderId = 1,
+                SellOrderId = 2,
+                MatchedPrice = 12.60m,
+                CreatedOn = now,
+                ModifiedOn = now,
+            };
+
+            _repo.Create<OrderTransaction>(order);
+            _repo.Save();
+
+            Assert.True(order.Id > 0);
         }
 
         [Fact]
@@ -67,6 +89,7 @@ namespace Franklin.Tests {
             DateTime now = DateTime.Now;            
             order.ModifiedOn = DateTime.Now;
             order.Quantity = 10;
+            order.StatusCode = OrderStatusCode.Filled;
 
             _repo.Update<ClientOrder>(order);
             _repo.Save();

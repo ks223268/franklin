@@ -31,8 +31,10 @@ namespace Franklin.Data
 
         *
         */
+
         public DbSet<MarketSecurity> Securities { get; set; }
         public DbSet<ClientOrder> ClientOrders { get; set; }
+        public DbSet<OrderTransaction> Transactions { get; set; }
 
     }
 }

@@ -59,8 +59,8 @@ namespace Franklin.Web.Controllers {
 
             ResponseModel response = new ResponseModel();
 
-            if ((!_securitySvc.IsValidToken(token)) || (!_securitySvc.IsValidRole(token, FranklinSystemRole.Trader))) {
-                response.Alerts.Add("Invalid token or role.");
+            if ((!_securitySvc.IsValidToken(token)) || (!_securitySvc.HasTraderRole(token))) {
+                response.Alerts.Add("Invalid token or role.");                
                 Response.StatusCode = (int)System.Net.HttpStatusCode.Unauthorized;
                 return new JsonResult(response);
 
@@ -75,15 +75,33 @@ namespace Franklin.Web.Controllers {
         [Route("POST")]
         public IActionResult SubmitOrder(string token, OrderRequestModel newOrder) {
 
-            var response = _orderSvc.SubmitOrder(newOrder);
-            if (!response.IsValid)
+            ResponseModel response = new ResponseModel();
+
+            if ((!_securitySvc.IsValidToken(token)) || (!_securitySvc.HasTraderRole(token))) {
+                response.Alerts.Add("Invalid token or role.");
+                Response.StatusCode = (int)System.Net.HttpStatusCode.Unauthorized;
+                return new JsonResult(response);
+
+            }
+
+            var orderResult = _orderSvc.SubmitOrder(newOrder);
+            if (!orderResult.IsValid)
                 Response.StatusCode = (int)System.Net.HttpStatusCode.BadRequest;
+
+            response.Data = orderResult;
 
             return new JsonResult(response);
 
         }
 
 
+        /// <summary>
+        /// This action applies to both roles.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="fromDateTime"></param>
+        /// <param name="toDateTime"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("SELECT")]
         public IActionResult GetTransactions(string token, string fromDateTime, string toDateTime) {
@@ -116,22 +134,29 @@ namespace Franklin.Web.Controllers {
             return new JsonResult(response);
         }
 
-        //bool ConfirmTokenRole(string token, )
-
+        
         // DELETE api/<TradingSystemController>/5
         [HttpDelete]
         [Route("DELETE")]
-        public IActionResult CancelOrder(string orderGuid) {
+        public IActionResult CancelOrder(string token, string orderGuid) {
 
-            string message = string.Empty;
+            ResponseModel response = new ResponseModel();
+
+            if ((!_securitySvc.IsValidToken(token)) || (!_securitySvc.HasTraderRole(token))) {
+                response.Alerts.Add("Invalid token or role.");
+                Response.StatusCode = (int)System.Net.HttpStatusCode.Unauthorized;
+                return new JsonResult(response);
+
+            }
+
             if (_orderSvc.CancelOrder(orderGuid)) {
-                message = "Order has been cancelled. Order Guid: " + orderGuid;
+                response.Alerts.Add("Order has been cancelled. Order Guid: " + orderGuid);
             }else {
-                message = "Invalid or non-existant order Guid: " + orderGuid;
+                response.Alerts.Add("Invalid or non-existant order Guid: " + orderGuid);
                 Response.StatusCode = (int)System.Net.HttpStatusCode.BadRequest;
             }
 
-            return new JsonResult(message);
+            return new JsonResult(response);
 
         }
     }

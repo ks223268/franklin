@@ -24,12 +24,12 @@ namespace Franklin.Core {
             LoginResultModel result = new LoginResultModel();            
             
             if (((username.ToLower() == "sparrow") & (password == "blue$ky123"))) {
-                result.Role = FranklinSystemRole.Trader.ToString("g");
+                result.Role = FranklinSystemRole.Trader;
                 result.Token = _traderToken;
                 result.IsValid = true;
 
             } else if ((username.ToLower() == "jaguar") & (password == "forest#789")) {
-                result.Role = FranklinSystemRole.Auditor.ToString("g");
+                result.Role = FranklinSystemRole.Auditor;
                 result.Token = _auditorToken;
                 result.IsValid = true;
             }
@@ -39,24 +39,26 @@ namespace Franklin.Core {
 
 
         /// <summary>
-        /// Confirm if the token belongs a user that has the specified role.
+        /// Determine role from token assignment to user.
         /// </summary>
         /// <param name="token"></param>
-        /// <param name="role"></param>
         /// <returns></returns>
-        public bool IsValidRole(string token, FranklinSystemRole role) { 
+        public bool HasTraderRole(string token) {
 
-            if (_traderToken.Equals(token, StringComparison.OrdinalIgnoreCase) ||
-                    role == FranklinSystemRole.Trader) {
-                return true;
-            }else if (_auditorToken.Equals(token, StringComparison.OrdinalIgnoreCase) ||
-                   role == FranklinSystemRole.Auditor) {
-                return true;
-            }
-
-            return false;
-
+            return _traderToken.Equals(token, StringComparison.OrdinalIgnoreCase);
+                    
         }
+
+        /// <summary>
+        /// Determine role from token assignment to user.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public bool HasAuditorRole(string token) {
+
+            return _auditorToken.Equals(token, StringComparison.OrdinalIgnoreCase);
+        }
+
 
         public bool IsValidToken(string token) {
 

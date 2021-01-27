@@ -39,15 +39,15 @@ namespace Franklin.Core {
             }
 
             if ((Util.IsEmpty(order.OrderType))
-                               && ((order.OrderType.ToUpper() != OrderTypeCode.IOC.ToString().ToUpper())
-                               && (order.OrderType.ToUpper() != OrderTypeCode.GTC.ToString().ToUpper()))) {
+                               && ((order.OrderType.ToUpper() != OrderTypeCode.Ioc.ToUpper())
+                               && (order.OrderType.ToUpper() != OrderTypeCode.Gtc.ToUpper()))) {
                 response.Alerts.Add("Order type should be IOC or GTC");
                 isValid = false;
             }
 
             if ((Util.IsEmpty(order.Side))
-                               && ((order.Side.ToUpper() != OrderSideCode.BUY.ToString().ToUpper())
-                               && (order.Side.ToUpper() != OrderSideCode.SELL.ToString().ToUpper()))) {
+                               && ((order.Side.ToUpper() != OrderSideCode.Buy.ToUpper())
+                               && (order.Side.ToUpper() != OrderSideCode.Sell.ToUpper()))) {
                 response.Alerts.Add("Order side should be BUY or SELL");
                 isValid = false;
             }
