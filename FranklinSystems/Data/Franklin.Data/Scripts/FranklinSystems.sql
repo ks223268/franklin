@@ -3,22 +3,15 @@ Adhoc queries.
 */
 USE [FranklinSystems]
 
-SELECT * FROM dbo.ClientOrder
+SELECT 'ClientOrder', *  FROM dbo.ClientOrder
+SELECT 'OrderBook', * FROM dbo.OrderBook
+SELECT 'OrderTransaction', * FROM dbo.OrderTransaction
 
--- Create relationships
 
-ALTER TABLE [dbo].[OrderTransaction]  WITH CHECK ADD  CONSTRAINT [FK_OrderTransaction_BuyOrderId] FOREIGN KEY([BuyOrderId])
-REFERENCES [dbo].[OrderBook] ([EntryId])
-GO
 
-ALTER TABLE [dbo].[OrderTransaction] CHECK CONSTRAINT [FK_OrderTransaction_BuyOrderId]
-GO
+-- Del
+/*
+DELETE FROM dbo.OrderTransaction
 
---
-ALTER TABLE [dbo].[OrderTransaction]  WITH CHECK ADD  CONSTRAINT [FK_OrderTransaction_SellOrderId] FOREIGN KEY([SellOrderId])
-REFERENCES [dbo].[OrderBook] ([EntryId])
-GO
-
-ALTER TABLE [dbo].[OrderTransaction] CHECK CONSTRAINT [FK_OrderTransaction_SellOrderId]
-GO
-
+--DELETE FROM dbo.ClientOrder WHERE Orderid = 
+*/

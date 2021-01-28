@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
+using System.Linq.Expressions;
 
 using Franklin.Common;
 using Franklin.Common.Model;
@@ -9,16 +10,36 @@ using Franklin.Data;
 using Franklin.Data.Entities;
 
 namespace Franklin.Core {
+
+ 
     public class OrderManagementService : IOrderManagementService {
 
         IRepository _repo;
-        // 
-        string[] _securities = new string[] { "AA01", "AA02", "AA03", "AA04", "AA05", "AA06", "AA07", "AA08", "AA09", "AA10" };
+        IOrderEngine _orderEngine;
+        ISecurityService _securitySvc;
 
-        public OrderManagementService(IRepository diRepo) {
+        //string[] _securities = new string[] { "AA01", "AA02", "AA03", "AA04", "AA05", "AA06", "AA07", "AA08", "AA09", "AA10" };
+
+        List<MarketSecurity> _securities;
+        IDictionary<string, string> _info;
+
+        public OrderManagementService(IRepository diRepo, IOrderEngine diOrderEngine,
+                                        ISecurityService diSecuritySvc) {
+
+            _securitySvc = diSecuritySvc;
             _repo = diRepo;
+            _orderEngine = diOrderEngine;
+            _orderEngine.Repository = diRepo;
+            
+            _securities = _repo.GetAll<MarketSecurity>().ToList();  
+
+            //
+            _info = new Dictionary<string, string>();
+            _info.Add("OrderMgmt", this.GetHashCode().ToString());
+            _info.Add("Engine", _orderEngine.GetHashCode().ToString());
         }
 
+        public IDictionary<string, string> Info { get { return _info; } }
 
         /// <summary>
         /// Validate the order request and provide messages.
@@ -33,28 +54,26 @@ namespace Franklin.Core {
 
             bool isValid = true;
 
-            if (!_securities.Contains(order.SecurityCode, StringComparer.OrdinalIgnoreCase)) {
+            if (_securities.FirstOrDefault(s => order.SecurityCode.Equals(s.Code, StringComparison.OrdinalIgnoreCase)) == null) {
                 response.Alerts.Add("Security code is not valid.");
                 isValid = false;
             }
 
-            if ((Util.IsEmpty(order.OrderType))
-                               && ((order.OrderType.ToUpper() != OrderTypeCode.Ioc.ToUpper())
-                               && (order.OrderType.ToUpper() != OrderTypeCode.Gtc.ToUpper()))) {
+            if ((Util.IsEmpty(order.OrderType)) & (!Util.IsOrderIoc(order.OrderType))
+                                                & (!Util.IsOrderGtc(order.OrderType))) {
                 response.Alerts.Add("Order type should be IOC or GTC");
                 isValid = false;
             }
 
-            if ((Util.IsEmpty(order.Side))
-                               && ((order.Side.ToUpper() != OrderSideCode.Buy.ToUpper())
-                               && (order.Side.ToUpper() != OrderSideCode.Sell.ToUpper()))) {
+            if ((Util.IsEmpty(order.Side)) & (!Util.IsBuySide(order.Side))
+                                            & (!Util.IsSellSide(order.Side))) {
                 response.Alerts.Add("Order side should be BUY or SELL");
                 isValid = false;
             }
 
             if (order.Quantity <= 0) {
                 isValid = false;
-                response.Alerts.Add("Quantity should be greater than 0");                
+                response.Alerts.Add("Quantity should be greater than 0");
             }
 
             if (order.Price <= 0) {
@@ -69,56 +88,20 @@ namespace Franklin.Core {
 
         }
 
+        public IEnumerable<OrderTransactionModel> GetOrderTransactions(DateTime fromDateTime, DateTime toDateTime) {
 
-        /// <summary>
-        /// Validate, create client order and order book entries as per rules.
-        /// </summary>
-        /// <param name="orderRequest"></param>
-        /// <returns></returns>
-        public OrderResponseModel SubmitOrder(OrderRequestModel orderRequest) {
-           
-            OrderResponseModel response = ValidateOrderRequest(orderRequest);
-            if (response.IsValid) {
-                                
-                var security = _repo.GetFirst<MarketSecurity>(s => s.Code == orderRequest.SecurityCode);
-                
-                // 1) Save client order
-                ClientOrder newOrder = new ClientOrder() {
-                    OrderGuid = Guid.NewGuid(),
-                    CreatedOn = Util.GetCurrentDateTime(),
-                    ModifiedOn = Util.GetCurrentDateTime(),
-                    SecurityId = security.Id,
-                    Price = orderRequest.Price,
-                    Quantity = orderRequest.Quantity,
-                    SideCode = orderRequest.Side,
-                    TypeCode = orderRequest.OrderType,
-                };
-
-                try {
-                    _repo.Create<ClientOrder>(newOrder);
-                    _repo.Save();
-                } catch (Exception exp) {
-                    // Log exp and throw with some order details, time etc.
-                    throw new Exception("Error while creating new order.");
-
-                }
-
-                // 2) Todo: Match and create order book entries, transactions.
-
-                response.OrderConfirmation = new OrderConfirmationModel() {
-                    IsValid = true,
-                    OrderGuid = newOrder.OrderGuid
-                };
-
-            }
-
-            return response;
-
-        }
-        
-        public IList<OrderTransactionModel> GetOrderTransactions(DateTime fromDateTime, DateTime toDateTime) {
+            var ordersFound = _repo.GetAll<OrderTransaction>()
+                .Where(ob => ob.ModifiedOn >= fromDateTime & ob.ModifiedOn <= toDateTime)
             
-            IList<OrderTransactionModel> ordersFound = new List<OrderTransactionModel>();
+                .Select(ob => new OrderTransactionModel() {
+                    Id = ob.Id,
+                    BuyOrderId = ob.BuyOrderId,
+                    SellOrderId = ob.SellOrderId,                    
+                    MatchedPrice = ob.MatchedPrice,
+                    QuantityFilled= ob.QuantityFilled,
+                    CreatedOn = ob.CreatedOn,
+                    ModifiedOn = ob.ModifiedOn
+                });                                   
 
             return ordersFound;
         }
@@ -129,14 +112,83 @@ namespace Franklin.Core {
         /// </summary>
         /// <param name="token"></param>
         /// <returns></returns>
-        public IList<OrderModel> GetOrdersPerTrader(string token) {
+        public IEnumerable<OrderModel> GetOrdersPerTrader(string token) {
+
+            int traderId = _securitySvc.GetUserId(token);
+            if (traderId <= 0)
+                throw new OrderException("User not found.");
             
-            IList<OrderModel> order = new List<OrderModel>();
+            var bookOrders = _repo.GetAll<OrderBookEntry>().Where(ob => (ob.TraderId == traderId) && (ob.Quantity > 0))
+                .Select(ob => new OrderModel() {
+                    OrderGuid = ob.OrderGuid.ToString(),
+                    SecurityCode = _securities.Find(s => s.Id == ob.SecurityId).Code,
+                    Price = ob.Price,
+                    Quantity = ob.Quantity,
+                    OrderType = ob.TypeCode,
+                    Side = ob.SideCode,
+                    CreatedOn = ob.CreatedOn,
+                    ModifiedOn = ob.ModifiedOn
+                });
+                                
+            return bookOrders;
+        }
 
+        /// <summary>
+        /// Validate, create client order and order book entries as per rules.
+        /// </summary>
+        /// <param name="orderRequest"></param>
+        /// <returns></returns>
+        public OrderResponseModel SubmitOrder(string token, OrderRequestModel orderRequest) {
 
-            //Assumption is that there will only be on trader id fo rnow.
+            OrderResponseModel response = ValidateOrderRequest(orderRequest);
+            if (!response.IsValid)
+                return response;
 
-            return order;
+            int traderId = _securitySvc.GetUserId(token);
+            if (traderId <= 0)
+                throw new OrderException("User not found.");
+
+            var security = _repo.GetFirst<MarketSecurity>(s => s.Code == orderRequest.SecurityCode);
+            DateTime now = Util.GetCurrentDateTime();
+            var newOrder = new ClientOrder() {
+                TraderId = traderId,
+                CreatedOn = now,
+                ModifiedOn = now,
+                SecurityId = security.Id,
+                Price = orderRequest.Price,
+                Quantity = orderRequest.Quantity,
+                SideCode = orderRequest.Side,
+                TypeCode = orderRequest.OrderType,
+            };
+
+            // Create a client order to save the original request.  
+
+            try {
+                _orderEngine.CreateClientOrder(newOrder);                
+            } catch (Exception exp) {
+                // Log exp and throw with some order details, time etc.
+                throw new OrderException("Error while creating client order for Trader Id # " + traderId, exp);
+
+            }
+
+            // Place order
+            string newOrderGuid = string.Empty;
+            if (Util.IsOrderGtc(orderRequest.OrderType)) {
+
+                newOrderGuid = _orderEngine.ExecuteGtcOrder(newOrder).ToString();
+
+            } else if (Util.IsOrderIoc(orderRequest.OrderType)) {
+
+                _orderEngine.ExecuteIocOrder(newOrder);
+            }
+
+            response.OrderConfirmation = new OrderConfirmationModel() {
+                IsValid = true,
+                OrderId = newOrder.OrderId,
+                OrderGuid = newOrderGuid
+            };
+
+            return response;
         }
 
         /// <summary>
@@ -150,8 +202,8 @@ namespace Franklin.Core {
             if (!Guid.TryParse(orderGuid, out validGuid))
                 return false;
 
-            // Cancel the order - Mock that the order is cancelled.
-            return true;
+            return _orderEngine.DeleteOrder(validGuid);
+
         }
 
     }

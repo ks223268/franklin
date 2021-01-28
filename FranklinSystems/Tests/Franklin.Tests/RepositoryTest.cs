@@ -43,13 +43,11 @@ namespace Franklin.Tests {
             var security = _repo.GetFirst<MarketSecurity>(s => s.Code.ToUpper() == "AA04");
 
             DateTime now = Util.GetCurrentDateTime();
-            ClientOrder order = new ClientOrder() {
-                OrderGuid = Guid.NewGuid(),
+            ClientOrder order = new ClientOrder() {                
                 TraderId = Constants.TraderUserId,
                 CreatedOn = now,
                 ModifiedOn = now,
-                SecurityId = security.Id,
-                StatusCode = OrderStatusCode.New,
+                SecurityId = security.Id,                
                 Price = 22.11m,
                 Quantity = 21,
                 SideCode = "SELL",
@@ -59,7 +57,7 @@ namespace Franklin.Tests {
             _repo.Create<ClientOrder>(order);
             _repo.Save();
 
-            Assert.True(order.OrderGuid != null);
+            Assert.True(order.OrderId > 0);
         }
 
 
@@ -70,6 +68,7 @@ namespace Franklin.Tests {
             OrderTransaction order = new OrderTransaction() {
                 BuyOrderId = 1,
                 SellOrderId = 2,
+                QuantityFilled = 11,
                 MatchedPrice = 12.60m,
                 CreatedOn = now,
                 ModifiedOn = now,
@@ -89,11 +88,34 @@ namespace Franklin.Tests {
             DateTime now = DateTime.Now;            
             order.ModifiedOn = DateTime.Now;
             order.Quantity = 10;
-            order.StatusCode = OrderStatusCode.Filled;
-
+            
             _repo.Update<ClientOrder>(order);
             _repo.Save();
         }
 
+        [Fact]
+        public void Test_CreateOrderBookEntry_Pass() {
+
+            DateTime now = Util.GetCurrentDateTime();
+            OrderBookEntry bookEntry = new OrderBookEntry() {
+                OrderGuid = Guid.NewGuid(),
+                TraderId = Constants.TraderUserId,
+                CreatedOn = now,
+                ModifiedOn = now,
+                SecurityId = 1,
+                Price = 22.11m,
+                Quantity = 21,
+                SideCode = "SELL",
+                TypeCode = "GTC",
+                StatusCode = OrderStatusCode.New,               
+            };
+
+            _repo.Create<OrderBookEntry>(bookEntry);
+            _repo.Save();
+
+            Assert.True(bookEntry.EntryId > 0);
+        }
+
+       
     }
 }

@@ -14,7 +14,10 @@ namespace Franklin.Core {
         bool IsValidToken(string token);
 
         bool HasTraderRole(string token);
-        
+
         bool HasAuditorRole(string token);
+
+        int GetUserId(string token);
+
     }
 }

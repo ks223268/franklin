@@ -9,7 +9,8 @@ namespace Franklin.Common.Model {
     /// </summary>
     public class OrderConfirmationModel : BaseModel {
 
-        public Guid OrderGuid { get; set; }
+        public int OrderId { get; set; }
+        public string OrderGuid { get; set; }
 
         public OrderConfirmationModel() {                        
             this.Alerts = new List<string>();

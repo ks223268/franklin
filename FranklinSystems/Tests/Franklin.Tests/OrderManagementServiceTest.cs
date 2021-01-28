@@ -13,9 +13,12 @@ namespace Franklin.Tests {
     public class OrderManagementServiceTest {
 
         IRepository _repo;
+        IOrderEngine _engine;
+        ISecurityService _securitySvc;
 
         public OrderManagementServiceTest() {
 
+            _securitySvc = new SecurityService();
             // Setup similar to the Startup configuration.
             string connectionString = TestHelper.GetIConfigurationRoot(AppContext.BaseDirectory)
                                                 .GetConnectionString("FranklinDbContext");
@@ -24,6 +27,10 @@ namespace Franklin.Tests {
             builder.UseSqlServer(connectionString);            
             FranklinDbContext franklinDbContext = new FranklinDbContext(builder.Options);
             _repo = new Repository(franklinDbContext);
+
+            _engine = new OrderEngine() {
+                Repository = _repo
+            };
         }
 
         [Fact]
@@ -61,7 +68,7 @@ namespace Franklin.Tests {
         }
 
         private IOrderManagementService GetService() {            
-            return new OrderManagementService(_repo);
+            return new OrderManagementService(_repo, _engine, _securitySvc);
         }
     }
 }

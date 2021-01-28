@@ -4,12 +4,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Franklin.Data.Entities {
 
-    /*
-     * Note to self:
-     * For some reason, if class is not annotated with the table name, DbContext tries to look for the DbSet name in the database.
-     * 
-     */ 
-
+   
+    /// <summary>
+    /// Transactions made as per trade.
+    /// </summary>
     [Table("OrderTransaction")]
     public class OrderTransaction {
                 
@@ -18,6 +16,7 @@ namespace Franklin.Data.Entities {
       
         public int BuyOrderId { get; set; }
         public int SellOrderId { get; set; }
+        public int QuantityFilled { get; set; }
 
         public decimal MatchedPrice { get; set; }
 

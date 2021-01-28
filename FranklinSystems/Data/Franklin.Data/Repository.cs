@@ -18,6 +18,8 @@ namespace Franklin.Data {
         //    _context = new FranklinDbContext(connectionString);            
         //}
 
+        public FranklinDbContext DbContext { get { return _context; } }
+
         public Repository(FranklinDbContext diContext) {
 
             _context = diContext;
@@ -110,7 +112,6 @@ namespace Franklin.Data {
         }
 
         #endregion
-                
-  
+
     }
 }

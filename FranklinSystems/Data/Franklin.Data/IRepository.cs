@@ -7,6 +7,8 @@ namespace Franklin.Data {
 
     public interface IRepository {
 
+        FranklinDbContext DbContext { get; }
+
         void Create<TEntity>(TEntity entity) where TEntity : class;
         void Delete<TEntity>(object id) where TEntity : class;
         void Delete<TEntity>(TEntity entity) where TEntity : class;

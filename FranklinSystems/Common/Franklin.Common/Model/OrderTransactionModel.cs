@@ -9,14 +9,20 @@ namespace Franklin.Common.Model {
     /// </summary>
     public class OrderTransactionModel {
 
-        public DateTime SubmittedOn { get; set; }
-        public DateTime ExecutedOn { get; set; }
+        public int Id { get; set; }
+        public DateTime CreatedOn { get; set; }
+        public DateTime ModifiedOn { get; set; }
 
+        public int BuyOrderId { get; set; }
+        public int SellOrderId { get; set; }
+        public int QuantityFilled { get; set; }
+        public decimal MatchedPrice { get; set; }
+        /*
         public string SecurityCode { get; set; }
         public string Side { get; set; }
         public string OrderType { get; set; }
-        public int Quantity { get; set; }
-        public decimal Price { get; set; }
+        */
+
 
     }
 }

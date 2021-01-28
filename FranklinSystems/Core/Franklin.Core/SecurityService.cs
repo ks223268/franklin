@@ -10,7 +10,9 @@ namespace Franklin.Core {
 
         // Mock the token values for now.
         const string _traderToken = "11370426-5bfe-4cfb-b5c3-10c2a1238eae";
+        const int _traderUserId = 7;
         const string _auditorToken = "1c71270f-59f0-43d5-814d-4891955fc071";
+        const int _auditorUserId = 22;
 
 
         /// <summary>
@@ -47,6 +49,18 @@ namespace Franklin.Core {
 
             return _traderToken.Equals(token, StringComparison.OrdinalIgnoreCase);
                     
+        }
+
+        public int GetUserId(string token) {
+
+            int userId = 0;
+
+            if (_auditorToken.Equals(token, StringComparison.OrdinalIgnoreCase))
+                userId = _auditorUserId;
+            else if (_traderToken.Equals(token, StringComparison.OrdinalIgnoreCase))
+                userId = _traderUserId;
+
+            return userId;
         }
 
         /// <summary>

@@ -59,8 +59,7 @@ namespace Franklin.Web {
             services.AddTransient(typeof(IRepository), typeof(Repository));
             services.AddTransient(typeof(IOrderManagementService), typeof(OrderManagementService));
 
-
-
+            services.AddSingleton(typeof(IOrderEngine), typeof(OrderEngine));
 
         }
 

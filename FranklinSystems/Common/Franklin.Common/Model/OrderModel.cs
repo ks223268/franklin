@@ -5,12 +5,14 @@ using System.Text;
 namespace Franklin.Common.Model {
     
     /// <summary>
-    /// Order submitted by the user.
+    /// Order book entry.
     /// </summary>
     public class OrderModel {
 
-        public DateTime SubmittedOn { get; set; }
-        public DateTime ExecutedOn { get; set; }
+        public string OrderGuid { get; set; }
+
+        public DateTime CreatedOn { get; set; }
+        public DateTime ModifiedOn { get; set; }
 
         public string SecurityCode { get; set; }
         public string Side { get; set; }

@@ -16,5 +16,22 @@ namespace Franklin.Common {
 
             return DateTime.Now;
         }
+
+        public static bool IsBuySide(string side) {
+            return side.ToUpper() == OrderSideCode.Buy.ToUpper();
+        }
+
+        public static bool IsSellSide(string side) {
+            return side.ToUpper() == OrderSideCode.Sell.ToUpper();
+        }
+
+        public static bool IsOrderGtc(string orderType) {
+            return orderType.ToUpper() == OrderTypeCode.Gtc.ToUpper();
+        }
+
+        public static bool IsOrderIoc(string orderType) {
+            return orderType.ToUpper() == OrderTypeCode.Ioc.ToUpper();
+        }
+
     }
 }
