@@ -21,6 +21,15 @@ namespace Franklin.Core {
         static object _orderLock = new object();
         IRepository _repo;
 
+
+        // Generic approach to determine a price-match as new order could be a buy or sell.
+        Func<bool, decimal, decimal, bool> _isAPriceMatch = delegate (bool isNewBuyOrder, decimal newOrderPrice, decimal matchedOrderPrice) {
+            if (isNewBuyOrder)
+                return newOrderPrice >= matchedOrderPrice;
+            else
+                return matchedOrderPrice >= newOrderPrice;
+        };
+
         /// <summary>
         /// Cannot inject Repository instance because it is of transient scope, while OrderEngine is singleton.
         /// </summary>
@@ -105,7 +114,7 @@ namespace Franklin.Core {
 
                 // Check for this newly added order book entry again in case, a previous request that just exited the section was able to fill and delete it
                 if (_repo.GetFirst<OrderBookEntry>(o => o.EntryId == newBookEntry.EntryId) == null) {
-                    return newBookEntry.OrderGuid;
+                    return Guid.Empty;
                 }
 
                 /*
@@ -113,14 +122,15 @@ namespace Franklin.Core {
                  * 
                  * So, if I'm buying, match sellers selling at my price or below it .i.e. my buying price >= their sell price
                  * And if I'm selling, match buyers that buy at my price or higher i.e. buyer price >= my selling price
-                 * 
-                 * In both cases, keep the right-left order i.e. new order price >= matched order price
+                 *                  
                 */
+                bool isBuyOrder = Util.IsBuySide(newBookEntry.SideCode);
 
-                string otherSideCode = Util.IsBuySide(newBookEntry.SideCode) == true ? OrderSideCode.Sell : OrderSideCode.Buy;
+                string otherSideCode = (isBuyOrder ? OrderSideCode.Sell : OrderSideCode.Buy);
 
                 var matchedOrders = _repo.GetAll<OrderBookEntry>().Where(oth => (oth.SecurityId == newBookEntry.SecurityId)
-                                        & (oth.Quantity > 0) & (newBookEntry.Price >= oth.Price)
+                                        & (oth.Quantity > 0)                                         
+                                        & (_isAPriceMatch(isBuyOrder, newBookEntry.Price, oth.Price))  //(newBookEntry.Price >= oth.Price)
                                         & (oth.SideCode == otherSideCode) & (oth.TraderId != newBookEntry.TraderId)) // Don't want to trade against oneself.
                                     .OrderByDescending(o => o.CreatedOn); // FIFO
 
@@ -142,8 +152,7 @@ namespace Franklin.Core {
 
                     } else {
 
-                        quantityFilled = matchedOrder.Quantity;
-                        //matchedOrder.Quantity = 0;
+                        quantityFilled = matchedOrder.Quantity;                        
                         newBookEntry.Quantity = newBookEntry.Quantity - quantityFilled;
                     }
 
@@ -236,18 +245,22 @@ namespace Franklin.Core {
             // Get lock for request so it obtains the list of matching orders, which would not be modified by another request.
             lock (_orderLock) {
 
-                string otherSideCode = Util.IsBuySide(newIocClientOrder.SideCode) == true ? OrderSideCode.Sell : OrderSideCode.Buy;
+                //}
+                bool isBuyOrder = Util.IsBuySide(newIocClientOrder.SideCode);
+                string otherSideCode = (isBuyOrder ? OrderSideCode.Sell : OrderSideCode.Buy);
 
                 /*
                  * For price-crossing match, the new order will be matched based on price and the side.
                  * 
                  * So, if I'm buying, match sellers selling at my price or below it .i.e. my buying price >= their sell price
                  * And if I'm selling, match buyers that buy at my price or higher i.e. buyer price >= my selling price
-                 * 
-                 * In both cases, keep the right-left order i.e. new order price >= matched order price
+                 *                  
                 */
+
                 var matchedOrders = _repo.GetAll<OrderBookEntry>().Where(oth => (oth.SecurityId == newIocClientOrder.SecurityId) 
-                                    & (oth.Quantity > 0) & (newIocClientOrder.Price >= oth.Price)
+                                    & (oth.Quantity > 0) 
+                                    // Make sure to pass the buy price to the first arg.
+                                    & (_isAPriceMatch(isBuyOrder, newIocClientOrder.Price, oth.Price)) //(newIocClientOrder.Price >= oth.Price)
                                     & (oth.SideCode == otherSideCode) & (oth.TraderId != newIocClientOrder.TraderId)) // Don't want to trade against oneself.
                                 .OrderByDescending(o => o.CreatedOn); // FIFO
 

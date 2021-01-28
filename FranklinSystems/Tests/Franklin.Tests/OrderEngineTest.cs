@@ -28,6 +28,9 @@ namespace Franklin.Tests {
         IOrderEngine _engine;
         int _traderA = 7;
         int _traderB = 8;
+        int _traderC = 10;
+
+        int _tg1_securityId = 3; // Test group 1
 
         public OrderEngineTest() {
 
@@ -121,35 +124,33 @@ namespace Franklin.Tests {
             Assert.True(iocOrder.OrderId > 0);
         }
 
-        [Fact]
-        public void Test_PriceMatch_Buy() {
+        //[Fact]
+        //public void Test_PriceMatch_Buy() {
 
-            int securityId = 3;
-            decimal buyPrice = 15;
-            string side = OrderSideCode.Sell;
+        //    int securityId = 3;
+        //    decimal buyPrice = 15;
+        //    string side = OrderSideCode.Sell;
 
 
-            var matchedOrders = _repo.GetAll<OrderBookEntry>().Where(oth => (oth.SecurityId == securityId)
-                        & (oth.Quantity > 0) & (buyPrice >= oth.Price)
-                        & (oth.SideCode == side) & (oth.TraderId != _traderA)) // Don't want to trade against oneself.
-                    .ToList();
+        //    var matchedOrders = _repo.GetAll<OrderBookEntry>().Where(oth => (oth.SecurityId == securityId)
+        //                & (oth.Quantity > 0) & (buyPrice >= oth.Price)
+        //                & (oth.SideCode == side) & (oth.TraderId != _traderA)) // Don't want to trade against oneself.
+        //            .ToList();
 
-            Assert.True(matchedOrders.Count() > 0);
-        }
+        //    Assert.True(matchedOrders.Count() > 0);
+        //}
 
         /// <summary>
         /// Execut A GTC sell matched with IOC buy.
         /// </summary>
         [Fact]
-        public void Test_ExecuteIoc_GTC() {
-
-            int securityId = 3;
-
+        public void Test_1_ExecuteIoc_GTC() {
+            
             var gtcOrder = new ClientOrder() {
                 TraderId = _traderA,
                 CreatedOn = Util.GetCurrentDateTime(),
                 ModifiedOn = Util.GetCurrentDateTime(),
-                SecurityId = securityId,
+                SecurityId = _tg1_securityId,
                 Price = 13,
                 Quantity = 50,
                 SideCode = OrderSideCode.Sell,
@@ -160,7 +161,7 @@ namespace Franklin.Tests {
                 TraderId = _traderB,
                 CreatedOn = Util.GetCurrentDateTime(),
                 ModifiedOn = Util.GetCurrentDateTime(),
-                SecurityId = securityId,
+                SecurityId = _tg1_securityId,
                 Price = 15,
                 Quantity = 10,
                 SideCode = OrderSideCode.Buy,
@@ -177,33 +178,49 @@ namespace Franklin.Tests {
             // Verify transaction
             var iocTran = _repo.GetFirst<OrderTransaction>(ot => ot.BuyOrderId == iocOrder.OrderId);
             Assert.True(iocTran != null);
-            Assert.True(iocTran.MatchedPrice == 10);
-            Assert.True(iocTran.QuantityFilled == 10);
+            Assert.True(iocTran.MatchedPrice == gtcOrder.Price);
+            Assert.True(iocTran.QuantityFilled == iocOrder.Quantity);
 
             // Verify GTC book entry
             var gtcBook = _repo.GetFirst<OrderBookEntry>(ob => ob.OrderId == gtcOrder.OrderId);            
             Assert.True(gtcBook.Quantity == 40);
         }
 
+        /// <summary>
+        /// Continuation of Test_ExecuteIoc_GTC()
+        /// </summary>
         [Fact]
-        public void Test_ExecuteGtcOrder_Pass() {
+        public void Test_1_ExecuteGtcOrder_Pass() {
 
-            var gtcOrder = new ClientOrder() {
-                TraderId = _traderB,
+            var gtcOrder1 = new ClientOrder() {
+                TraderId = _traderC,
                 CreatedOn = Util.GetCurrentDateTime(),
                 ModifiedOn = Util.GetCurrentDateTime(),
-                SecurityId = 1,
-                Price = 21,
-                Quantity = 10,
-                SideCode = OrderSideCode.Sell,
-                TypeCode = OrderTypeCode.Ioc,
+                SecurityId = _tg1_securityId,
+                Price = 9,
+                Quantity = 60,
+                SideCode = OrderSideCode.Buy,
+                TypeCode = OrderTypeCode.Gtc,
             };
-
+            var gtcOrder2 = new ClientOrder() {
+                TraderId = _traderC,
+                CreatedOn = Util.GetCurrentDateTime(),
+                ModifiedOn = Util.GetCurrentDateTime(),
+                SecurityId = _tg1_securityId,
+                Price = 21,
+                Quantity = 60,
+                SideCode = OrderSideCode.Buy,
+                TypeCode = OrderTypeCode.Gtc,
+            };
             // Save and execute
-            _engine.CreateClientOrder(gtcOrder);
-            _engine.ExecuteGtcOrder(gtcOrder);
+            _engine.CreateClientOrder(gtcOrder1);
+            _engine.CreateClientOrder(gtcOrder2);
+            _engine.ExecuteGtcOrder(gtcOrder1);
+            Guid guid2 = _engine.ExecuteGtcOrder(gtcOrder2);
 
-            Assert.True(gtcOrder.OrderId > 0);
+            var tran = _repo.GetFirst<OrderBookEntry>(ob => ob.OrderGuid == guid2);
+
+            Assert.True(tran.Quantity == 20);
         }
 
 
