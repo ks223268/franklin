@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Threading.Tasks;
 
 using Franklin.Common;
 using Franklin.Common.Model;
@@ -13,7 +13,7 @@ namespace Franklin.Core {
         IDictionary<string, string> Info { get; }
 
         OrderResponseModel ValidateOrderRequest(OrderRequestModel orderRequest);
-        OrderResponseModel SubmitOrder(string token, OrderRequestModel orderRequest);
+        Task<OrderResponseModel> SubmitOrder(string token, OrderRequestModel orderRequest);
         IEnumerable<OrderTransactionModel> GetOrderTransactions(DateTime fromDateTime, DateTime toDateTime);
         IEnumerable<OrderModel> GetOrdersPerTrader(string token);
         

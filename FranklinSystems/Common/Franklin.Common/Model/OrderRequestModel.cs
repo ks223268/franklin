@@ -7,7 +7,7 @@ namespace Franklin.Common.Model {
     /// <summary>
     /// This is the order submitted by the trader.
     /// </summary>
-    public class OrderRequestModel: BaseModel  {
+    public class OrderRequestModel  {
 
         //public int TraderId { get; set; }
 

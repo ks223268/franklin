@@ -25,6 +25,8 @@ namespace Franklin.Web.Controllers {
             _orderSvc = diOms;
         }
 
+        /*       
+         * 
         [HttpGet]
         [Route("Info")]
         public IActionResult Info() {
@@ -33,6 +35,7 @@ namespace Franklin.Web.Controllers {
 
             return new JsonResult(_orderSvc.Info);
         }
+        */
 
         /// <summary>
         /// Validate and return a token Guid.
@@ -82,24 +85,24 @@ namespace Franklin.Web.Controllers {
         // POST api/<TradingSystemController>
         [HttpPost]
         [Route("POST")]
-        public IActionResult SubmitOrder(string token, OrderRequestModel newOrder) {
+        public async Task<IActionResult> SubmitOrder(string token, OrderRequestModel newOrder) {
 
-            ResponseModel response = new ResponseModel();
 
             if ((!_securitySvc.IsValidToken(token)) || (!_securitySvc.HasTraderRole(token))) {
+                ResponseModel response = new ResponseModel();
                 response.Alerts.Add("Invalid token or role.");
                 Response.StatusCode = (int)System.Net.HttpStatusCode.Unauthorized;
+
                 return new JsonResult(response);
 
             }
             
-            var orderResult = _orderSvc.SubmitOrder(token, newOrder);
+            var taskResult = _orderSvc.SubmitOrder(token, newOrder);
+            var orderResult = await taskResult;
             if (!orderResult.IsValid)
                 Response.StatusCode = (int)System.Net.HttpStatusCode.BadRequest;
 
-            response.Data = orderResult;
-
-            return new JsonResult(response);
+            return new JsonResult(orderResult);
 
         }
 

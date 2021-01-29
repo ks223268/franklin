@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Threading.Tasks;
 
 using Franklin.Common;
 using Franklin.Common.Model;
@@ -14,10 +14,10 @@ namespace Franklin.Core {
         IRepository Repository { get; set; }
 
         int CreateClientOrder(ClientOrder clientOrder);
+        
+        Task<Guid> ExecuteGtcOrderAsync(ClientOrder newGtcClientOrder);
 
-        Guid ExecuteGtcOrder(ClientOrder newGtcClientOrder);
-
-        void ExecuteIocOrder(ClientOrder newIocClientOrder);
+        Task<int> ExecuteIocOrderAsync(ClientOrder newIocClientOrder);
 
         bool DeleteOrder(Guid orderGuid);
 

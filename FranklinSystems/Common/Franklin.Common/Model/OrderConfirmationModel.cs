@@ -5,15 +5,12 @@ using System.Text;
 namespace Franklin.Common.Model {
 
     /// <summary>
-    /// Confirmation of an or
+    /// Order details.
     /// </summary>
-    public class OrderConfirmationModel : BaseModel {
+    public class OrderConfirmationModel {
 
         public int OrderId { get; set; }
         public string OrderGuid { get; set; }
 
-        public OrderConfirmationModel() {                        
-            this.Alerts = new List<string>();
-        }
     }
 }

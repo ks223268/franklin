@@ -9,6 +9,9 @@ using Franklin.Common.Model;
 using Franklin.Data;
 using Franklin.Data.Entities;
 
+using System.Threading;
+using System.Threading.Tasks;
+
 //[assembly: InternalsVisibleTo("Franklin.Tests")]
 namespace Franklin.Core {
 
@@ -18,9 +21,11 @@ namespace Franklin.Core {
     /// </summary>
     public class OrderEngine : IOrderEngine {
 
+        // Only 1 thread to be let in.
+        static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+
         static object _orderLock = new object();
         IRepository _repo;
-
 
         // Generic approach to determine a price-match as new order could be a buy or sell.
         Func<bool, decimal, decimal, bool> _isAPriceMatch = delegate (bool isNewBuyOrder, decimal newOrderPrice, decimal matchedOrderPrice) {
@@ -34,6 +39,7 @@ namespace Franklin.Core {
         /// Cannot inject Repository instance because it is of transient scope, while OrderEngine is singleton.
         /// </summary>
         public IRepository Repository { get { return _repo; } set { _repo = value; } }
+
 
         /// <summary>
         /// Create a client order to save the original request.  
@@ -86,7 +92,7 @@ namespace Franklin.Core {
         /// </summary>
         /// <param name="newGtcClientOrder"></param>
         /// <returns></returns>
-        public Guid ExecuteGtcOrder(ClientOrder newGtcClientOrder) {
+        public async Task<Guid> ExecuteGtcOrderAsync(ClientOrder newGtcClientOrder) {
 
             // Create a new book entry based from the client order.
             DateTime now = Util.GetCurrentDateTime();
@@ -110,7 +116,9 @@ namespace Franklin.Core {
             _repo.Save(); // This makes it available to other orders coming in.
 
             // Lock for request here so it obtains the list of matching orders, which would not be modified by another request.
-            lock (_orderLock) {
+            await semaphoreSlim.WaitAsync();
+            try {
+            //lock (_orderLock) {
 
                 // Check for this newly added order book entry again in case, a previous request that just exited the section was able to fill and delete it
                 if (_repo.GetFirst<OrderBookEntry>(o => o.EntryId == newBookEntry.EntryId) == null) {
@@ -129,7 +137,7 @@ namespace Franklin.Core {
                 string otherSideCode = (isBuyOrder ? OrderSideCode.Sell : OrderSideCode.Buy);
 
                 var matchedOrders = _repo.GetAll<OrderBookEntry>().Where(oth => (oth.SecurityId == newBookEntry.SecurityId)
-                                        & (oth.Quantity > 0)                                         
+                                        & (oth.Quantity > 0)
                                         & (_isAPriceMatch(isBuyOrder, newBookEntry.Price, oth.Price))  //(newBookEntry.Price >= oth.Price)
                                         & (oth.SideCode == otherSideCode) & (oth.TraderId != newBookEntry.TraderId)) // Don't want to trade against oneself.
                                     .OrderByDescending(o => o.CreatedOn); // FIFO
@@ -152,7 +160,7 @@ namespace Franklin.Core {
 
                     } else {
 
-                        quantityFilled = matchedOrder.Quantity;                        
+                        quantityFilled = matchedOrder.Quantity;
                         newBookEntry.Quantity = newBookEntry.Quantity - quantityFilled;
                     }
 
@@ -232,20 +240,29 @@ namespace Franklin.Core {
                 }
 
                 return newOrderGuid;
+
+            }finally {
+                semaphoreSlim.Release(); // let the others come in.
             }
 
         }
 
         /// <summary>
-        /// Execute IOC order against book.
+        /// 
         /// </summary>
         /// <param name="newIocClientOrder"></param>
-        public void ExecuteIocOrder(ClientOrder newIocClientOrder) {
+        /// <returns>Total quantity filled.</returns>
+        public async Task<int> ExecuteIocOrderAsync(ClientOrder newIocClientOrder) {
 
             // Get lock for request so it obtains the list of matching orders, which would not be modified by another request.
-            lock (_orderLock) {
+            await semaphoreSlim.WaitAsync();
+            try {
+                //lock (_orderLock) {
 
                 //}
+                
+                int totalFilled = 0;
+
                 bool isBuyOrder = Util.IsBuySide(newIocClientOrder.SideCode);
                 string otherSideCode = (isBuyOrder ? OrderSideCode.Sell : OrderSideCode.Buy);
 
@@ -265,7 +282,7 @@ namespace Franklin.Core {
                                 .OrderByDescending(o => o.CreatedOn); // FIFO
 
                 bool orderFilled = false;
-                int totalFilled = 0;
+            
                 int totalQty = newIocClientOrder.Quantity;
 
                 // Determine qty available on each order, fill, update and create transaction.
@@ -354,6 +371,10 @@ namespace Franklin.Core {
                     _repo.Save();
                 }
 
+                return totalFilled;
+            }finally {
+
+                semaphoreSlim.Release();
             }
 
         }

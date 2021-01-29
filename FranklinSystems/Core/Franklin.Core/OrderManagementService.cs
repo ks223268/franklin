@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Threading.Tasks;
 using System.Linq;
 using System.Linq.Expressions;
 using Microsoft.Extensions.Logging;
@@ -13,7 +13,7 @@ using Franklin.Data.Entities;
 
 namespace Franklin.Core {
 
- 
+
     public class OrderManagementService : IOrderManagementService {
 
         IRepository _repo;
@@ -27,17 +27,17 @@ namespace Franklin.Core {
         IDictionary<string, string> _info;
 
         public OrderManagementService(IRepository diRepo, IOrderEngine diOrderEngine,
-                                        ISecurityService diSecuritySvc, ILoggerFactory diLogger) {
+                                        ISecurityService diSecuritySvc, ILoggerFactory diLoggerFactory) {
 
             _securitySvc = diSecuritySvc;
             _repo = diRepo;
-            _logger = diLogger.CreateLogger<OrderManagementService>();
+            _logger = diLoggerFactory.CreateLogger<OrderManagementService>();
 
             _orderEngine = diOrderEngine;
             _orderEngine.Repository = diRepo;
-            
+
             _securities = _repo.GetAll<MarketSecurity>().ToList();
-            _logger.LogInformation("Loaded all the securities.");
+            // _logger.LogInformation("Loaded all the securities.");
 
             //
             _info = new Dictionary<string, string>();
@@ -98,16 +98,16 @@ namespace Franklin.Core {
 
             var ordersFound = _repo.GetAll<OrderTransaction>()
                 .Where(ob => ob.ModifiedOn >= fromDateTime & ob.ModifiedOn <= toDateTime)
-            
+
                 .Select(ob => new OrderTransactionModel() {
                     Id = ob.Id,
                     BuyOrderId = ob.BuyOrderId,
-                    SellOrderId = ob.SellOrderId,                    
+                    SellOrderId = ob.SellOrderId,
                     MatchedPrice = ob.MatchedPrice,
-                    QuantityFilled= ob.QuantityFilled,
+                    QuantityFilled = ob.QuantityFilled,
                     CreatedOn = ob.CreatedOn,
                     ModifiedOn = ob.ModifiedOn
-                });                                   
+                });
 
             return ordersFound;
         }
@@ -123,7 +123,7 @@ namespace Franklin.Core {
             int traderId = _securitySvc.GetUserId(token);
             if (traderId <= 0)
                 throw new OrderException("User not found.");
-            
+
             var bookOrders = _repo.GetAll<OrderBookEntry>().Where(ob => (ob.TraderId == traderId) && (ob.Quantity > 0))
                 .Select(ob => new OrderModel() {
                     OrderGuid = ob.OrderGuid.ToString(),
@@ -135,7 +135,7 @@ namespace Franklin.Core {
                     CreatedOn = ob.CreatedOn,
                     ModifiedOn = ob.ModifiedOn
                 });
-                                
+
             return bookOrders;
         }
 
@@ -144,8 +144,8 @@ namespace Franklin.Core {
         /// </summary>
         /// <param name="orderRequest"></param>
         /// <returns></returns>
-        public OrderResponseModel SubmitOrder(string token, OrderRequestModel orderRequest) {
-
+        public async Task<OrderResponseModel> SubmitOrder(string token, OrderRequestModel orderRequest) {
+        
             OrderResponseModel response = ValidateOrderRequest(orderRequest);
             if (!response.IsValid)
                 return response;
@@ -182,15 +182,17 @@ namespace Franklin.Core {
             string newOrderGuid = string.Empty;
             if (Util.IsOrderGtc(orderRequest.OrderType)) {
 
-                newOrderGuid = _orderEngine.ExecuteGtcOrder(newOrder).ToString();
+                Task<Guid> taskExecuteGtcOrder = _orderEngine.ExecuteGtcOrderAsync(newOrder);
+                Guid orderGuid = await taskExecuteGtcOrder;
+                newOrderGuid = orderGuid.ToString();
 
             } else if (Util.IsOrderIoc(orderRequest.OrderType)) {
 
-                _orderEngine.ExecuteIocOrder(newOrder);
+                Task<int> taskExecuteIocOrder = _orderEngine.ExecuteIocOrderAsync(newOrder);
+                await taskExecuteIocOrder;
             }
 
-            response.OrderConfirmation = new OrderConfirmationModel() {
-                IsValid = true,
+            response.OrderConfirmation = new OrderConfirmationModel() {               
                 OrderId = newOrder.OrderId,
                 OrderGuid = newOrderGuid
             };
@@ -204,7 +206,7 @@ namespace Franklin.Core {
         /// <param name="orderGuid"></param>
         /// <returns></returns>
         public bool CancelOrder(string orderGuid) {
-            
+
             Guid validGuid;
             if (!Guid.TryParse(orderGuid, out validGuid))
                 return false;

@@ -12,6 +12,7 @@ using Franklin.Data.Entities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.InMemory;
+using System.Threading.Tasks;
 
 using Moq;
 
@@ -96,12 +97,14 @@ namespace Franklin.Tests {
             // Save and execute
             _engine.CreateClientOrder(gtcOrder1);
             _engine.CreateClientOrder(gtcOrder2);
+            
+            Task<Guid> createdOrder1 = _engine.ExecuteGtcOrderAsync(gtcOrder1);
+            Task<Guid> createdOrder2 = _engine.ExecuteGtcOrderAsync(gtcOrder2);
 
-            Guid bookEntry1 = _engine.ExecuteGtcOrder(gtcOrder1);
-            Guid bookEntry2 = _engine.ExecuteGtcOrder(gtcOrder2);
+            System.Threading.Thread.Sleep(2000);
 
-            Assert.True(bookEntry1 != Guid.Empty);
-            Assert.True(bookEntry2 != Guid.Empty);
+            Assert.True(createdOrder1.Result != Guid.Empty);
+            Assert.True(createdOrder2.Result != Guid.Empty);
         }
 
         [Fact(Skip = "Tested as part of another method.")]
@@ -171,9 +174,11 @@ namespace Franklin.Tests {
             // Save and execute
             _engine.CreateClientOrder(gtcOrder);
             _engine.CreateClientOrder(iocOrder);
-            _engine.ExecuteGtcOrder(gtcOrder); // Execute so it ends up in the book
+            
+            Task<Guid> taskGtc = _engine.ExecuteGtcOrderAsync(gtcOrder);
+            Task<int> taskIoc = _engine.ExecuteIocOrderAsync(iocOrder);
 
-            _engine.ExecuteIocOrder(iocOrder);
+            System.Threading.Thread.Sleep(2000);
 
             // Verify transaction
             var iocTran = _repo.GetFirst<OrderTransaction>(ot => ot.BuyOrderId == iocOrder.OrderId);
@@ -215,14 +220,56 @@ namespace Franklin.Tests {
             // Save and execute
             _engine.CreateClientOrder(gtcOrder1);
             _engine.CreateClientOrder(gtcOrder2);
-            _engine.ExecuteGtcOrder(gtcOrder1);
-            Guid guid2 = _engine.ExecuteGtcOrder(gtcOrder2);
+            
+            Task<Guid> createdOrder = _engine.ExecuteGtcOrderAsync(gtcOrder1);
+            Task<Guid> createdOrder2 = _engine.ExecuteGtcOrderAsync(gtcOrder2);
 
-            var tran = _repo.GetFirst<OrderBookEntry>(ob => ob.OrderGuid == guid2);
+            System.Threading.Thread.Sleep(2000);
+
+            var tran = _repo.GetFirst<OrderBookEntry>(ob => ob.OrderGuid == createdOrder2.Result);
 
             Assert.True(tran.Quantity == 20);
         }
 
+        [Fact]
+        public void Test_Async_ExecuteGtcOrder() {
+
+            var gtcOrder1 = new ClientOrder() {
+                TraderId = _traderA,
+                CreatedOn = Util.GetCurrentDateTime(),
+                ModifiedOn = Util.GetCurrentDateTime(),
+                SecurityId = 2,
+                Price = 55,
+                Quantity = 24,
+                SideCode = OrderSideCode.Sell,
+                TypeCode = OrderTypeCode.Gtc,
+            };
+
+            var gtcOrder2 = new ClientOrder() {
+                TraderId = _traderA,
+                CreatedOn = Util.GetCurrentDateTime(),
+                ModifiedOn = Util.GetCurrentDateTime(),
+                SecurityId = 2,
+                Price = 15,
+                Quantity = 66,
+                SideCode = OrderSideCode.Buy,
+                TypeCode = OrderTypeCode.Gtc,
+            };
+
+            // Save and execute
+            _engine.CreateClientOrder(gtcOrder1);
+            _engine.CreateClientOrder(gtcOrder2);
+            
+            // Introduce delay in method, spawn multiple threads and test.
+            Task<Guid> createdOrder = _engine.ExecuteGtcOrderAsync(gtcOrder1);
+            Task<Guid> createdOrder2 = _engine.ExecuteGtcOrderAsync(gtcOrder2);
+
+            // Wait for a second for the task to complete.
+            System.Threading.Thread.Sleep(2000);
+            Assert.True(createdOrder.Result != Guid.Empty);
+            Assert.True(createdOrder2.Result != Guid.Empty);
+            
+        }
 
         [Fact]
         public void Test_DeleteOrder_Fail() {

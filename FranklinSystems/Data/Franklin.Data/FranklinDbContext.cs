@@ -13,7 +13,7 @@ namespace Franklin.Data
 {
     public class FranklinDbContext : DbContext
     {
-        string _connectionString;
+        //string _connectionString;
 
         public FranklinDbContext(DbContextOptions option) : base(option) {            
         }
