@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using System.Linq.Expressions;
+using Microsoft.Extensions.Logging;
+
 
 using Franklin.Common;
 using Franklin.Common.Model;
@@ -17,6 +19,7 @@ namespace Franklin.Core {
         IRepository _repo;
         IOrderEngine _orderEngine;
         ISecurityService _securitySvc;
+        ILogger _logger;
 
         //string[] _securities = new string[] { "AA01", "AA02", "AA03", "AA04", "AA05", "AA06", "AA07", "AA08", "AA09", "AA10" };
 
@@ -24,14 +27,17 @@ namespace Franklin.Core {
         IDictionary<string, string> _info;
 
         public OrderManagementService(IRepository diRepo, IOrderEngine diOrderEngine,
-                                        ISecurityService diSecuritySvc) {
+                                        ISecurityService diSecuritySvc, ILoggerFactory diLogger) {
 
             _securitySvc = diSecuritySvc;
             _repo = diRepo;
+            _logger = diLogger.CreateLogger<OrderManagementService>();
+
             _orderEngine = diOrderEngine;
             _orderEngine.Repository = diRepo;
             
-            _securities = _repo.GetAll<MarketSecurity>().ToList();  
+            _securities = _repo.GetAll<MarketSecurity>().ToList();
+            _logger.LogInformation("Loaded all the securities.");
 
             //
             _info = new Dictionary<string, string>();
@@ -164,7 +170,8 @@ namespace Franklin.Core {
             // Create a client order to save the original request.  
 
             try {
-                _orderEngine.CreateClientOrder(newOrder);                
+                _orderEngine.CreateClientOrder(newOrder);
+                _logger.LogInformation("Client Order created. Order Id: " + newOrder.OrderId);
             } catch (Exception exp) {
                 // Log exp and throw with some order details, time etc.
                 throw new OrderException("Error while creating client order for Trader Id # " + traderId, exp);
@@ -197,7 +204,7 @@ namespace Franklin.Core {
         /// <param name="orderGuid"></param>
         /// <returns></returns>
         public bool CancelOrder(string orderGuid) {
-
+            
             Guid validGuid;
             if (!Guid.TryParse(orderGuid, out validGuid))
                 return false;

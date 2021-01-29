@@ -21,6 +21,8 @@ namespace Franklin.Data.Entities {
         public string TypeCode { get; set; }
         public int Quantity { get; set; }
         public int FilledQuantity { get; set; }
+
+        [Column(TypeName = "decimal(10,2)")]
         public decimal Price { get; set; }
         
         public DateTime  CreatedOn { get; set; }

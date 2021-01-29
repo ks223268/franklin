@@ -18,6 +18,7 @@ namespace Franklin.Data.Entities {
         public int SellOrderId { get; set; }
         public int QuantityFilled { get; set; }
 
+        [Column(TypeName = "decimal(10,2)")]
         public decimal MatchedPrice { get; set; }
 
         public DateTime  CreatedOn { get; set; }

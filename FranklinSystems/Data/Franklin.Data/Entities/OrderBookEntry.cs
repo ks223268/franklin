@@ -23,6 +23,8 @@ namespace Franklin.Data.Entities {
         public string SideCode { get; set; }
         public string TypeCode { get; set; }
         public int Quantity { get; set; }
+
+        [Column(TypeName = "decimal(10,2)")]
         public decimal Price { get; set; }
         public string StatusCode { get; set; }
         public DateTime  CreatedOn { get; set; }

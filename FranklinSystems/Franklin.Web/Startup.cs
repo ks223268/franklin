@@ -9,8 +9,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.SqlServer;
+using Microsoft.Extensions.Logging.Log4Net;
 
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -31,8 +33,10 @@ namespace Franklin.Web {
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services) {
 
-            services.AddControllers();
+            //services.AddLogging();
 
+            services.AddControllers();
+            
             // Register the Swagger generator, defining 1 or more Swagger documents
             services.AddSwaggerGen(c => {
                 c.SwaggerDoc("v1", new OpenApiInfo {
@@ -54,7 +58,7 @@ namespace Franklin.Web {
 
             services.AddDbContext<FranklinDbContext>(opt => opt.UseSqlServer(Configuration["ConnectionStrings:FranklinDbContext"]));
 
-            // DI
+            // DI            
             services.AddTransient(typeof(ISecurityService), typeof(SecurityService));
             services.AddTransient(typeof(IRepository), typeof(Repository));
             services.AddTransient(typeof(IOrderManagementService), typeof(OrderManagementService));
@@ -64,15 +68,16 @@ namespace Franklin.Web {
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env) {
-
-
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory) {
+                        
             if (env.IsDevelopment()) {
-                app.UseDeveloperExceptionPage();
+                app.UseDeveloperExceptionPage();            
+            } else {
+                app.UseExceptionHandler(loggerFactory);
             }
 
-            // Enable middleware to serve generated Swagger as a JSON endpoint.
-            app.UseSwagger();
+    // Enable middleware to serve generated Swagger as a JSON endpoint.
+    app.UseSwagger();
 
             // Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.),
             // specifying the Swagger JSON endpoint.

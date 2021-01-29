@@ -28,7 +28,9 @@ namespace Franklin.Web.Controllers {
         [HttpGet]
         [Route("Info")]
         public IActionResult Info() {
-            
+
+            //throw new Exception("error during info.");
+
             return new JsonResult(_orderSvc.Info);
         }
 
