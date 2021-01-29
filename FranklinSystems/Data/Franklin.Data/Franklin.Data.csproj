@@ -16,4 +16,8 @@
     <ProjectReference Include="..\..\Common\Franklin.Common\Franklin.Common.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Scripts\Tables\" />
+  </ItemGroup>
+
 </Project>
